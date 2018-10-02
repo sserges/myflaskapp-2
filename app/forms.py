@@ -21,3 +21,8 @@ class RegisterForm(Form):
         EqualTo('confirm', message='Passwords do not match')
     ])
     confirm = PasswordField('Confirm Password', [DataRequired()])
+
+
+class ArticleForm(Form):
+    title = StringField('Title', [DataRequired(), Length(min=1, max=200)])
+    body = TextAreaField('Body', [DataRequired(), Length(min=30)])

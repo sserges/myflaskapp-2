@@ -1,3 +1,5 @@
+from functools import wraps
+
 from flask import (
     flash,
     url_for,
@@ -11,11 +13,23 @@ from flask import (
 from passlib.hash import sha256_crypt
 
 from app import app, db
-from .models import User
-from .forms import RegisterForm
+from .models import User, Article
+from .forms import RegisterForm, ArticleForm
 from .data import Articles
 
-Articles = Articles()
+# Articles = Articles()
+
+# Check if user logged in
+def is_logged_in(f):
+    @wraps(f)
+    def wrap(*args, **kwargs):
+        if 'logged_in' in session:
+            return f(*args, **kwargs)
+        else:
+            flash('Unauthorized, Please login', 'danger')
+            return redirect(url_for('login'))
+    return wrap
+
 
 @app.route('/')
 def index():
@@ -29,12 +43,14 @@ def about():
 
 @app.route('/articles')
 def articles():
-    return render_template('articles.html', articles=Articles)
+    articles = Article.query.all()
+    return render_template('articles.html', articles=articles)
 
 
 @app.route('/article/<string:id>/')
 def article(id):
-    return render_template('article.html', id=id)
+    article = Article.query.filter_by(id=id).first_or_404()
+    return render_template('article.html', article=article)
 
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -65,8 +81,8 @@ def register():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form['username']
-        password_candidate = request.form['password']
+        username = str(request.form['username']).strip()
+        password_candidate = str(request.form['password']).strip()
 
         query = User.query.filter_by(username=f'{username}')
         result = query.count()
@@ -78,10 +94,52 @@ def login():
 
             # Compare Passwords
             if sha256_crypt.verify(password_candidate, password):
-                app.logger.info('PASSWORD MATCHED')
+                # app.logger.info('PASSWORD MATCHED')
+                session['logged_in'] = True
+                session['username'] = username
+
+                flash('You are now logged in', 'success')
+                return redirect(url_for('dashboard'))
             else:
-                app.logger.info('PASSWORD NOT MATCHED')
+                flash('Invalid login', 'danger')
+                return render_template('login.html')
         else:
-            app.logger.info('NO USER')
+            flash('Username not found', 'danger')
+            return render_template('login.html')
 
     return render_template('login.html')
+
+
+@app.route('/logout')
+@is_logged_in
+def logout():
+    session.clear()
+    flash('You are now logged out', 'success')
+    return redirect(url_for('login'))
+
+
+@app.route('/dashboard')
+@is_logged_in
+def dashboard():
+    articles = Article.query.all()
+    return render_template('dashboard.html', articles=articles)
+
+
+@app.route('/add_article', methods=['GET', 'POST'])
+@is_logged_in
+def add_article():
+    form = ArticleForm(request.form)
+    if request.method == 'POST' and form.validate():
+        title = str(form.title.data).strip()
+        body = str(form.body.data).strip()
+
+        article = Article(title=title, body=body, author=session['username'])
+
+        db.session.add(article)
+        db.session.commit()
+
+        flash('Article Created', 'success')
+
+        return redirect(url_for('dashboard'))
+
+    return render_template('add_article.html', form=form)
