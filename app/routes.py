@@ -128,6 +128,7 @@ def dashboard():
 @app.route('/add_article', methods=['GET', 'POST'])
 @is_logged_in
 def add_article():
+    page_title = 'Add Article'
     form = ArticleForm(request.form)
     if request.method == 'POST' and form.validate():
         title = str(form.title.data).strip()
@@ -142,4 +143,39 @@ def add_article():
 
         return redirect(url_for('dashboard'))
 
-    return render_template('add_article.html', form=form)
+    return render_template('add_article.html', form=form, page_title=page_title)
+
+
+@app.route('/edit_article/<string:id>', methods=['GET', 'POST'])
+@is_logged_in
+def edit_article(id):
+    page_title = 'Edit Article'
+    article = Article.query.filter_by(id=id).first_or_404()
+    form = ArticleForm(request.form)
+
+    form.title.data = article.title
+    form.body.data = article.body
+
+    if request.method == 'POST' and form.validate():
+        title = str(request.form['title']).strip()
+        body = str(request.form['body']).strip()
+
+        article.title = title
+        article.body = body
+
+        db.session.commit()
+        flash('Article Updated', 'success')
+
+        return redirect(url_for('dashboard'))
+
+    return render_template('add_article.html', form=form, page_title=page_title)
+
+
+@app.route('/delete_article/<string:id>')
+@is_logged_in
+def delete_article(id):
+    article = Article.query.filter_by(id=id).first_or_404()
+    db.session.delete(article)
+    db.session.commit()
+    flash('Article Deleted', 'success')
+    return redirect('dashboard')
