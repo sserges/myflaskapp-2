@@ -1,0 +1,8 @@
+sentry-sdk[flask]==0.3.7
+Flask==0.12.2
+Flask-Migrate==2.1.1
+Flask-SQLAlchemy==2.3.2
+Flask-WTF==0.14.2
+passlib==1.7.1
+gunicorn
+psycopg2-binary
