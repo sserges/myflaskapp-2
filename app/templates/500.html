@@ -1,0 +1,10 @@
+{% extends 'layout.html' %}
+
+{% block body %}
+	<h1>Server Error</h1>
+
+	<p>
+		Sorry, it looks like something broke, we'll fix it soon<br/>
+		Back to the <a href="{{ url_for('index') }}">home</a>
+	</p>
+{% endblock %}
