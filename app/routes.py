@@ -33,7 +33,6 @@ def is_logged_in(f):
 
 @app.route('/')
 def index():
-    f
     return render_template('home.html')
 
 
